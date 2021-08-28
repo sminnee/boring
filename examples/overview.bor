@@ -1,0 +1,30 @@
+/*
+ * Calculate the factorial of an integer
+ */
+let factorial = fn (x: i32): i32 =>
+  if x <= 0 {
+    1
+  } else {
+    x => x * factorial(x-1)
+  }
+
+/*
+ * Simple vector
+ */
+
+type vec3 = {
+  x: f32,
+  y: f32,
+  z: f32,
+}
+
+let makeVec = fn (x: f32, y: f32, z: f32): vec3 => {
+  {x:x, y:y, z:z}
+}
+
+let dot = fn (a: vec3, b: vec3): f32 => a.x*b.x + a.y*b.y + a.z*b.z
+
+// Comments
+log("factorial(10) = ", factorial(10))
+
+log("dot([1,2,3], [4,5,6]) = ", dot(makeVec(1,2,3), makeVec(4,5,6)))
