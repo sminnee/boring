@@ -80,13 +80,14 @@ let withProperty exprParser =
 (* Parse a single expression: value terms -> value result *)
 let rec expr s = (expression operators term) s
 
-(* Parse a term of an expression *)
+(* Parse a term of an expression, including property lookup *)
 and term s =
   (int <|> attempt fnDef
   <|> withProperty (ifElse <|> newRecord <|> fnCall <|> parens expr)
   <|> int)
     s
 
+(* "myFn(arg, arg)" or "myVar" *)
 and fnCall s =
   (pipe2 identifier
      (option
@@ -94,7 +95,7 @@ and fnCall s =
      makeFnCall)
     s
 
-(* Parse a function def *)
+(* "(a: t, b: t): t => { block }" or "(a, b) => (expr)" *)
 and fnDef s =
   (pipe3
      (charToken '('
@@ -104,7 +105,7 @@ and fnDef s =
      exprOrBlock makeFnDef)
     s
 
-(* Parse an if-else expression *)
+(* "if (expr) { (expr) } else { (expr) }" *)
 and ifElse s =
   (pipe3
      (strTokenSp "if" >> expr << charToken '{')
@@ -113,18 +114,20 @@ and ifElse s =
      makeIfElse)
     s
 
-(* (expr) or { block } *)
+(* "(expr)" or "{ block }" *)
 and exprOrBlock s =
-  (attempt (charToken '{' >> body << charToken '}') <|> (expr |>> exprToBody)) s
+  (attempt (charToken '{' >> block << charToken '}') <|> (expr |>> exprToBody)) s
 
-(* Parse a let x = (expr) or let x = { block } expression *)
+(* "let x = (expr)" *)
 and letDef s = (pipe2 (labelledAssign "let") expr makeLetDef) s
 
+(* "type t = {a: t, b: t}" *)
 and typeDef s = (pipe2 (labelledAssign "type") recordTypeDef makeTypeDef) s
 
-and body s = many1 (letDef <|> typeDef <|> (expr |>> exprToBodyItem)) s
+(* a sequence of let defs, type defs, and expressions *)
+and block s = many1 (letDef <|> typeDef <|> (expr |>> exprToBodyItem)) s
 
-(* A property: value *)
+(* "property: (expr)" *)
 and propVal s = (pair (identifier << charToken ':') expr) s
 
 and newRecord s =
@@ -133,7 +136,7 @@ and newRecord s =
   << charToken '}' |>> makeRecord) s
 
 (* Parse the contents of a file from a string *)
-let parse s : body result = parse_string (spaces >> body << eof) s ()
+let parse s : body result = parse_string (spaces >> block << eof) s ()
 
 (* Parse the contents of an expression from a string *)
 let parseExpr s : expr result = parse_string (spaces >> expr << eof) s ()

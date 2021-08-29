@@ -1,0 +1,29 @@
+name: Test workflow
+
+on:
+  pull_request:
+  push:
+    branches:
+     - main
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Use OCaml 4.12.x
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: 4.12.x
+
+      - run: opam install . --deps-only --with-test
+
+      - run: opam exec -- dune build
+
+      - run: opam exec -- dune runtest
